@@ -1,5 +1,6 @@
 [package]
 name = "pinentry"
+description = "API for interacting with pinentry binaries"
 version = "0.0.0"
 authors = ["Jack Grigg <thestr4d@gmail.com>"]
 license = "MIT OR Apache-2.0"
