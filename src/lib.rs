@@ -1,9 +1,10 @@
 #![deny(intra_doc_link_resolution_failure)]
+#![deny(missing_docs)]
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+mod assuan;
+mod error;
+
+pub use error::Error;
+
+/// Result type for the `pinentry` crate.
+pub type Result<T> = std::result::Result<T, Error>;
