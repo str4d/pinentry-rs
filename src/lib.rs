@@ -4,16 +4,16 @@
 //! # Examples
 //!
 //! ```no_run
-//! use pinentry::PinEntry;
+//! use pinentry::PassphraseInput;
 //! use secrecy::SecretString;
 //!
-//! let passphrase = if let Some(mut input) = PinEntry::with_default_binary() {
+//! let passphrase = if let Some(mut input) = PassphraseInput::with_default_binary() {
 //!     // pinentry binary is available!
 //!     input
 //!         .with_description("Enter new passphrase for FooBar")
 //!         .with_prompt("Passphrase:")
 //!         .with_confirmation("Confirm passphrase:", "Passphrases do not match")
-//!         .get_passphrase()
+//!         .interact()
 //!         .map(|p| p.unwrap_or_else(|| SecretString::new(String::new())))
 //! } else {
 //!     // Fall back to some other passphrase entry method.
@@ -38,8 +38,8 @@ pub use error::Error;
 /// Result type for the `pinentry` crate.
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// An interface to the `pinentry` binaries available on various platforms.
-pub struct PinEntry<'a> {
+/// A dialog for requesting a passphrase from the user.
+pub struct PassphraseInput<'a> {
     binary: PathBuf,
     description: Option<&'a str>,
     prompt: Option<&'a str>,
@@ -47,15 +47,15 @@ pub struct PinEntry<'a> {
     timeout: Option<u16>,
 }
 
-impl<'a> PinEntry<'a> {
-    /// Creates a new PinEntry interface using the binary named `pinentry`.
+impl<'a> PassphraseInput<'a> {
+    /// Creates a new PassphraseInput using the binary named `pinentry`.
     ///
     /// Returns `None` if `pinentry` cannot be found in `PATH`.
     pub fn with_default_binary() -> Option<Self> {
         Self::with_binary("pinentry".to_owned())
     }
 
-    /// Creates a new PinEntry interface using the given path to, or name of, a `pinentry`
+    /// Creates a new PassphraseInput using the given path to, or name of, a `pinentry`
     /// binary.
     ///
     /// Returns `None` if:
@@ -63,7 +63,7 @@ impl<'a> PinEntry<'a> {
     /// - A binary name was provided that cannot be found in `PATH`.
     /// - The binary is found but is not executable.
     pub fn with_binary<T: AsRef<OsStr>>(binary_name: T) -> Option<Self> {
-        which::which(binary_name).ok().map(|binary| PinEntry {
+        which::which(binary_name).ok().map(|binary| PassphraseInput {
             binary,
             description: None,
             prompt: None,
@@ -119,7 +119,7 @@ impl<'a> PinEntry<'a> {
     /// Asks for a passphrase or PIN.
     ///
     /// Returns `None` if the user provided an empty passphrase or PIN.
-    pub fn get_passphrase(&self) -> Result<Option<SecretString>> {
+    pub fn interact(&self) -> Result<Option<SecretString>> {
         let mut pinentry = assuan::Connection::open(&self.binary)?;
 
         if let Some(desc) = &self.description {
@@ -136,8 +136,6 @@ impl<'a> PinEntry<'a> {
             pinentry.send_request("SETTIMEOUT", Some(&format!("{}", timeout)))?;
         }
 
-        let passphrase = pinentry.send_request("GETPIN", None)?;
-
-        Ok(passphrase)
+        pinentry.send_request("GETPIN", None)
     }
 }
