@@ -10,4 +10,5 @@ edition = "2018"
 log = "0.4"
 nom = "5"
 secrecy = "0.6"
+which = { version = "3.1", default-features = false }
 zeroize = "1"
