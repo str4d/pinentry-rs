@@ -3,6 +3,8 @@
 //!
 //! # Examples
 //!
+//! ## Request passphrase or PIN
+//!
 //! ```no_run
 //! use pinentry::PassphraseInput;
 //! use secrecy::SecretString;
@@ -18,6 +20,32 @@
 //!     // Fall back to some other passphrase entry method.
 //!     Ok(SecretString::new("a better passphrase than this".to_owned()))
 //! }?;
+//! # Ok::<(), pinentry::Error>(())
+//! ```
+//!
+//! ## Ask user for confirmation
+//!
+//! ```no_run
+//! use pinentry::ConfirmationDialog;
+//!
+//! if let Some(mut input) = ConfirmationDialog::with_default_binary() {
+//!     input
+//!         .with_ok("Definitely!")
+//!         .with_not_ok("No thanks")
+//!         .with_cancel("Maybe later")
+//!         .confirm("Would you like to play a game?")?;
+//! };
+//! # Ok::<(), pinentry::Error>(())
+//! ```
+//!
+//! ## Display a message
+//!
+//! ```no_run
+//! use pinentry::MessageDialog;
+//!
+//! if let Some(mut input) = MessageDialog::with_default_binary() {
+//!     input.with_ok("Got it!").show_message("This will be shown with a single button.")?;
+//! };
 //! # Ok::<(), pinentry::Error>(())
 //! ```
 
@@ -219,5 +247,207 @@ impl<'a> PassphraseInput<'a> {
                 }
             }
         }
+    }
+}
+
+/// A dialog for requesting a confirmation from the user.
+pub struct ConfirmationDialog<'a> {
+    binary: PathBuf,
+    title: Option<&'a str>,
+    ok: Option<&'a str>,
+    cancel: Option<&'a str>,
+    not_ok: Option<&'a str>,
+    timeout: Option<u16>,
+}
+
+impl<'a> ConfirmationDialog<'a> {
+    /// Creates a new ConfirmationDialog using the binary named `pinentry`.
+    ///
+    /// Returns `None` if `pinentry` cannot be found in `PATH`.
+    pub fn with_default_binary() -> Option<Self> {
+        Self::with_binary("pinentry".to_owned())
+    }
+
+    /// Creates a new ConfirmationDialog using the given path to, or name of, a `pinentry`
+    /// binary.
+    ///
+    /// Returns `None` if:
+    /// - A path was provided that does not exist.
+    /// - A binary name was provided that cannot be found in `PATH`.
+    /// - The binary is found but is not executable.
+    pub fn with_binary<T: AsRef<OsStr>>(binary_name: T) -> Option<Self> {
+        which::which(binary_name)
+            .ok()
+            .map(|binary| ConfirmationDialog {
+                binary,
+                title: None,
+                ok: None,
+                cancel: None,
+                not_ok: None,
+                timeout: None,
+            })
+    }
+
+    /// Sets the window title.
+    ///
+    /// When using this feature you should take care that the window is still identifiable
+    /// as the pinentry.
+    pub fn with_title(&mut self, title: &'a str) -> &mut Self {
+        self.title = Some(title);
+        self
+    }
+
+    /// Sets the text for the button signalling confirmation (the "OK" button).
+    ///
+    /// You should use an underscore in the text only if you know that a modern version of
+    /// pinentry is used. Modern versions underline the next character after the
+    /// underscore and use the first such underlined character as a keyboard accelerator.
+    /// Use a double underscore to escape an underscore.
+    pub fn with_ok(&mut self, ok: &'a str) -> &mut Self {
+        self.ok = Some(ok);
+        self
+    }
+
+    /// Sets the text for the button signaling cancellation or disagreement (the "Cancel"
+    /// button).
+    ///
+    /// You should use an underscore in the text only if you know that a modern version of
+    /// pinentry is used. Modern versions underline the next character after the
+    /// underscore and use the first such underlined character as a keyboard accelerator.
+    /// Use a double underscore to escape an underscore.
+    pub fn with_cancel(&mut self, cancel: &'a str) -> &mut Self {
+        self.cancel = Some(cancel);
+        self
+    }
+
+    /// Enables the third non-affirmative response button (the "Not OK" button).
+    ///
+    /// This can be used in case three buttons are required (to distinguish between
+    /// cancellation and disagreement).
+    ///
+    /// You should use an underscore in the text only if you know that a modern version of
+    /// pinentry is used. Modern versions underline the next character after the
+    /// underscore and use the first such underlined character as a keyboard accelerator.
+    /// Use a double underscore to escape an underscore.
+    pub fn with_not_ok(&mut self, not_ok: &'a str) -> &mut Self {
+        self.not_ok = Some(not_ok);
+        self
+    }
+
+    /// Sets the timeout (in seconds) before returning an error.
+    pub fn with_timeout(&mut self, timeout: u16) -> &mut Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+    /// Asks for confirmation.
+    ///
+    /// Returns:
+    /// - `Ok(true)` if the "OK" button is selected.
+    /// - `Ok(false)` if:
+    ///   - the "Cancel" button is selected and the "Not OK" button is disabled.
+    ///   - the "Not OK" button is enabled and selected.
+    /// - `Err(Error::Cancelled)` if the "Cancel" button is selected and the "Not OK"
+    ///   button is enabled.
+    pub fn confirm(&self, query: &str) -> Result<bool> {
+        let mut pinentry = assuan::Connection::open(&self.binary)?;
+
+        pinentry.send_request("SETDESC", Some(query))?;
+        if let Some(ok) = &self.ok {
+            pinentry.send_request("SETOK", Some(ok))?;
+        }
+        if let Some(cancel) = &self.cancel {
+            pinentry.send_request("SETCANCEL", Some(cancel))?;
+        }
+        if let Some(not_ok) = &self.not_ok {
+            pinentry.send_request("SETNOTOK", Some(not_ok))?;
+        }
+        if let Some(timeout) = self.timeout {
+            pinentry.send_request("SETTIMEOUT", Some(&format!("{}", timeout)))?;
+        }
+
+        pinentry
+            .send_request("CONFIRM", None)
+            .map(|_| true)
+            .or_else(|e| match (&e, self.not_ok.is_some()) {
+                (Error::Cancelled, false) => Ok(false),
+                // GPG_ERR_NOT_CONFIRMED
+                (Error::Gpg(gpg), true) if gpg.code() == 114 => Ok(false),
+                _ => Err(e),
+            })
+    }
+}
+
+/// A dialog for showing a message to the user.
+pub struct MessageDialog<'a> {
+    binary: PathBuf,
+    title: Option<&'a str>,
+    ok: Option<&'a str>,
+    timeout: Option<u16>,
+}
+
+impl<'a> MessageDialog<'a> {
+    /// Creates a new MessageDialog using the binary named `pinentry`.
+    ///
+    /// Returns `None` if `pinentry` cannot be found in `PATH`.
+    pub fn with_default_binary() -> Option<Self> {
+        Self::with_binary("pinentry".to_owned())
+    }
+
+    /// Creates a new MessageDialog using the given path to, or name of, a `pinentry`
+    /// binary.
+    ///
+    /// Returns `None` if:
+    /// - A path was provided that does not exist.
+    /// - A binary name was provided that cannot be found in `PATH`.
+    /// - The binary is found but is not executable.
+    pub fn with_binary<T: AsRef<OsStr>>(binary_name: T) -> Option<Self> {
+        which::which(binary_name).ok().map(|binary| MessageDialog {
+            binary,
+            title: None,
+            ok: None,
+            timeout: None,
+        })
+    }
+
+    /// Sets the window title.
+    ///
+    /// When using this feature you should take care that the window is still identifiable
+    /// as the pinentry.
+    pub fn with_title(&mut self, title: &'a str) -> &mut Self {
+        self.title = Some(title);
+        self
+    }
+
+    /// Sets the text for the button signalling confirmation (the "OK" button).
+    ///
+    /// You should use an underscore in the text only if you know that a modern version of
+    /// pinentry is used. Modern versions underline the next character after the
+    /// underscore and use the first such underlined character as a keyboard accelerator.
+    /// Use a double underscore to escape an underscore.
+    pub fn with_ok(&mut self, ok: &'a str) -> &mut Self {
+        self.ok = Some(ok);
+        self
+    }
+
+    /// Sets the timeout (in seconds) before returning an error.
+    pub fn with_timeout(&mut self, timeout: u16) -> &mut Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+    /// Shows a message.
+    pub fn show_message(&self, message: &str) -> Result<()> {
+        let mut pinentry = assuan::Connection::open(&self.binary)?;
+
+        pinentry.send_request("SETDESC", Some(message))?;
+        if let Some(ok) = &self.ok {
+            pinentry.send_request("SETOK", Some(ok))?;
+        }
+        if let Some(timeout) = self.timeout {
+            pinentry.send_request("SETTIMEOUT", Some(&format!("{}", timeout)))?;
+        }
+
+        pinentry.send_request("MESSAGE", None).map(|_| ())
     }
 }
