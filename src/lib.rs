@@ -40,6 +40,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// A dialog for requesting a passphrase from the user.
 pub struct PassphraseInput<'a> {
     binary: PathBuf,
+    required: Option<&'a str>,
     title: Option<&'a str>,
     description: Option<&'a str>,
     error: Option<&'a str>,
@@ -70,6 +71,7 @@ impl<'a> PassphraseInput<'a> {
             .ok()
             .map(|binary| PassphraseInput {
                 binary,
+                required: None,
                 title: None,
                 description: None,
                 error: None,
@@ -79,6 +81,16 @@ impl<'a> PassphraseInput<'a> {
                 cancel: None,
                 timeout: None,
             })
+    }
+
+    /// Prevents the user from submitting an empty passphrase.
+    ///
+    /// The provided error text will be displayed if the user submits an empty passphrase.
+    /// The dialog will remain open until the user either submits a non-empty passphrase,
+    /// or selects the "Cancel" button.
+    pub fn required(&mut self, empty_error: &'a str) -> &mut Self {
+        self.required = Some(empty_error);
+        self
     }
 
     /// Sets the window title.
@@ -196,9 +208,16 @@ impl<'a> PassphraseInput<'a> {
             pinentry.send_request("SETTIMEOUT", Some(&format!("{}", timeout)))?;
         }
 
-        // If the user provides an empty passphrase, GETPIN returns no data.
-        pinentry
-            .send_request("GETPIN", None)
-            .map(|p| p.unwrap_or_else(|| SecretString::new(String::new())))
+        loop {
+            match (pinentry.send_request("GETPIN", None)?, self.required) {
+                // If the user provides an empty passphrase, GETPIN returns no data.
+                (None, None) => return Ok(SecretString::new(String::new())),
+                (Some(passphrase), _) => return Ok(passphrase),
+                (_, Some(empty_error)) => {
+                    // SETERROR is cleared by GETPIN, so we reset it on each loop.
+                    pinentry.send_request("SETERROR", Some(empty_error))?;
+                }
+            }
+        }
     }
 }
