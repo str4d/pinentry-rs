@@ -371,8 +371,7 @@ impl<'a> ConfirmationDialog<'a> {
             .map(|_| true)
             .or_else(|e| match (&e, self.not_ok.is_some()) {
                 (Error::Cancelled, false) => Ok(false),
-                // GPG_ERR_NOT_CONFIRMED
-                (Error::Gpg(gpg), true) if gpg.code() == 114 => Ok(false),
+                (Error::Gpg(gpg), true) if gpg.code() == error::GPG_ERR_NOT_CONFIRMED => Ok(false),
                 _ => Err(e),
             })
     }

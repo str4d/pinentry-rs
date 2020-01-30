@@ -1,5 +1,9 @@
 use std::{fmt, io};
 
+pub(crate) const GPG_ERR_TIMEOUT: u16 = 62;
+pub(crate) const GPG_ERR_CANCELED: u16 = 99;
+pub(crate) const GPG_ERR_NOT_CONFIRMED: u16 = 114;
+
 /// An uncommon or unexpected GPG error.
 ///
 /// `pinentry` is built on top of Assuan, which inherits all of GPG's error codes. Only
@@ -75,8 +79,8 @@ impl From<io::Error> for Error {
 impl Error {
     pub(crate) fn from_parts(code: u16, description: Option<String>) -> Self {
         match code {
-            62 => Error::Timeout,
-            99 => Error::Cancelled,
+            GPG_ERR_TIMEOUT => Error::Timeout,
+            GPG_ERR_CANCELED => Error::Cancelled,
             _ => Error::Gpg(GpgError::new(code, description)),
         }
     }
