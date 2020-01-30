@@ -1,8 +1,10 @@
 use std::{fmt, io};
 
-/// Assuan is built on top of `libgpg-error`, and inherits all of GPG's error codes.
-/// Only some of these error codes are actually used by the common `pinentry`
-/// implementations, but it's possible to receive any of them.
+/// An uncommon or unexpected GPG error.
+///
+/// `pinentry` is built on top of Assuan, which inherits all of GPG's error codes. Only
+/// some of these error codes are actually used by the common `pinentry` implementations,
+/// but it's possible to receive any of them.
 #[derive(Debug)]
 pub struct GpgError {
     /// The GPG error code.
