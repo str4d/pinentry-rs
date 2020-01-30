@@ -14,7 +14,6 @@
 //!         .with_prompt("Passphrase:")
 //!         .with_confirmation("Confirm passphrase:", "Passphrases do not match")
 //!         .interact()
-//!         .map(|p| p.unwrap_or_else(|| SecretString::new(String::new())))
 //! } else {
 //!     // Fall back to some other passphrase entry method.
 //!     Ok(SecretString::new("a better passphrase than this".to_owned()))
@@ -168,9 +167,7 @@ impl<'a> PassphraseInput<'a> {
     }
 
     /// Asks for a passphrase or PIN.
-    ///
-    /// Returns `None` if the user provided an empty passphrase or PIN.
-    pub fn interact(&self) -> Result<Option<SecretString>> {
+    pub fn interact(&self) -> Result<SecretString> {
         let mut pinentry = assuan::Connection::open(&self.binary)?;
 
         if let Some(title) = &self.title {
@@ -199,6 +196,9 @@ impl<'a> PassphraseInput<'a> {
             pinentry.send_request("SETTIMEOUT", Some(&format!("{}", timeout)))?;
         }
 
-        pinentry.send_request("GETPIN", None)
+        // If the user provides an empty passphrase, GETPIN returns no data.
+        pinentry
+            .send_request("GETPIN", None)
+            .map(|p| p.unwrap_or_else(|| SecretString::new(String::new())))
     }
 }
