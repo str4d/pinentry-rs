@@ -3,6 +3,16 @@
 pinentry is a library for interacting with the pinentry binaries available on
 various platforms.
 
+## Usage
+
+Add this line to your `Cargo.toml`:
+
+```
+pinentry = "0.1"
+```
+
+See the [documentation](https://docs.rs/pinentry) for examples.
+
 ## License
 
 Licensed under either of
