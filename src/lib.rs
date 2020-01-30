@@ -32,7 +32,7 @@ use std::path::PathBuf;
 mod assuan;
 mod error;
 
-pub use error::Error;
+pub use error::{Error, GpgError};
 
 /// Result type for the `pinentry` crate.
 pub type Result<T> = std::result::Result<T, Error>;
