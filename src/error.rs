@@ -58,7 +58,7 @@ pub enum Error {
     /// An uncommon or unexpected GPG error.
     Gpg(GpgError),
 
-    /// The user's passphrase doesn't decode to valid UTF-8.
+    /// The user's input doesn't decode to valid UTF-8.
     Encoding(std::str::Utf8Error),
 }
 
