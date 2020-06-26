@@ -57,6 +57,9 @@ pub enum Error {
     Io(io::Error),
     /// An uncommon or unexpected GPG error.
     Gpg(GpgError),
+
+    /// The user's passphrase doesn't decode to valid UTF-8.
+    Encoding(std::str::Utf8Error),
 }
 
 impl fmt::Display for Error {
@@ -66,6 +69,7 @@ impl fmt::Display for Error {
             Error::Cancelled => write!(f, "Operation cancelled"),
             Error::Gpg(e) => e.fmt(f),
             Error::Io(e) => e.fmt(f),
+            Error::Encoding(e) => e.fmt(f),
         }
     }
 }
@@ -73,6 +77,12 @@ impl fmt::Display for Error {
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Self {
         Error::Io(e)
+    }
+}
+
+impl From<std::str::Utf8Error> for Error {
+    fn from(e: std::str::Utf8Error) -> Self {
+        Error::Encoding(e)
     }
 }
 
