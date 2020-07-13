@@ -1,5 +1,7 @@
 use log::{debug, info};
+use percent_encoding::percent_decode_str;
 use secrecy::{ExposeSecret, SecretString};
+use std::borrow::Cow;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
 use std::process::{ChildStdin, ChildStdout};
@@ -118,7 +120,12 @@ impl Connection {
                 Response::Comment(comment) => debug!("< # {}", comment),
                 Response::DataLine(data_line) => {
                     let buf = data.take();
-                    data = Some(buf.unwrap_or_else(String::new) + data_line.expose_secret());
+                    let data_line_decoded =
+                        percent_decode_str(data_line.expose_secret()).decode_utf8()?;
+                    data = Some(buf.unwrap_or_else(String::new) + &data_line_decoded);
+                    if let Cow::Owned(mut data_line_decoded) = data_line_decoded {
+                        data_line_decoded.zeroize();
+                    }
                 }
                 res => info!("< {:?}", res),
             }
