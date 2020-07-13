@@ -15,5 +15,5 @@ log = "0.4"
 nom = "5"
 percent-encoding = "2.1"
 secrecy = "0.7"
-which = { version = "3.1", default-features = false }
+which = { version = "4", default-features = false }
 zeroize = "1"
