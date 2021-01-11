@@ -6,6 +6,10 @@ and this project adheres to Rust's notion of
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All versions prior
 to 1.0.0 are beta releases.
 
+## [Unreleased]
+- MSRV has been increased to 1.44.0
+- Bumped `nom` crate to 0.6
+
 ## [0.2.0] - 2020-07-13
 - MSRV has been increased to 1.39.0
 - Percent-encoded responses are now correctly handled.
