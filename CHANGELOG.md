@@ -6,8 +6,9 @@ and this project adheres to Rust's notion of
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All versions prior
 to 1.0.0 are beta releases.
 
-## [Unreleased]
+## [0.4.0] - 2021-08-03
 - MSRV has been increased to 1.51.0
+- Bumped `secrecy` crate to 0.8
 
 ## [0.3.0] - 2021-01-11
 - MSRV has been increased to 1.44.0
