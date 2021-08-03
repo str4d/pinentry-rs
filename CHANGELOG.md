@@ -6,6 +6,9 @@ and this project adheres to Rust's notion of
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All versions prior
 to 1.0.0 are beta releases.
 
+## [Unreleased]
+- MSRV has been increased to 1.51.0
+
 ## [0.3.0] - 2021-01-11
 - MSRV has been increased to 1.44.0
 - Bumped `nom` crate to 0.6
