@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-nom = { version = "6", default-features = false }
+nom = { version = "7", default-features = false }
 percent-encoding = "2.1"
 secrecy = "0.8"
 which = { version = "4", default-features = false }
