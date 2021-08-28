@@ -8,7 +8,7 @@ various platforms.
 Add this line to your `Cargo.toml`:
 
 ```
-pinentry = "0.4"
+pinentry = "0.5"
 ```
 
 See the [documentation](https://docs.rs/pinentry) for examples.
