@@ -1,4 +1,4 @@
-use std::{fmt, io};
+use std::{error, fmt, io};
 
 pub(crate) const GPG_ERR_TIMEOUT: u16 = 62;
 pub(crate) const GPG_ERR_CANCELED: u16 = 99;
@@ -33,6 +33,8 @@ impl fmt::Display for GpgError {
         Ok(())
     }
 }
+
+impl error::Error for GpgError {}
 
 impl GpgError {
     pub(super) fn new(code: u16, description: Option<String>) -> Self {
@@ -73,6 +75,8 @@ impl fmt::Display for Error {
         }
     }
 }
+
+impl error::Error for Error {}
 
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Self {
