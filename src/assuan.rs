@@ -44,6 +44,35 @@ pub struct Connection {
     input: BufReader<ChildStdout>,
 }
 
+// Percent escape some chars as described here:
+// https://gnupg.org/documentation/manuals/assuan/Client-requests.html
+fn encode_request(command: &str, parameters: Option<&str>) -> String {
+    let cap = command.len() + parameters.map_or(0, |p| p.len() + 10) + 1;
+    let mut buf = String::with_capacity(cap);
+    buf.push_str(command);
+    if let Some(p) = parameters {
+        buf.push(' ');
+        for c in p.chars() {
+            match c {
+                '\n' => buf.push_str("%0A"),
+                '\r' => buf.push_str("%0D"),
+                '%' => buf.push_str("%25"),
+                _ => buf.push(c),
+            }
+        }
+    }
+    if let Some(b'\\') = buf.as_bytes().last() {
+        buf.pop();
+        buf.push_str("%5C");
+    }
+    buf.push('\n');
+    assert!(
+        buf.as_bytes().len() <= 1000,
+        "splitting of long lines yet implemented"
+    );
+    buf
+}
+
 impl Connection {
     pub fn open(name: &Path) -> Result<Self> {
         let process = Command::new(name)
@@ -80,12 +109,8 @@ impl Connection {
         command: &str,
         parameters: Option<&str>,
     ) -> Result<Option<SecretString>> {
-        self.output.write_all(command.as_bytes())?;
-        if let Some(p) = parameters {
-            self.output.write_all(b" ")?;
-            self.output.write_all(p.as_bytes())?;
-        }
-        self.output.write_all(b"\n")?;
+        let buf = encode_request(command, parameters);
+        self.output.write_all(buf.as_bytes())?;
         self.read_response()
     }
 
@@ -214,5 +239,26 @@ mod read {
             )),
             line_ending,
         )(input)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encoding() {
+        assert_eq!(encode_request("CMD", None), "CMD\n");
+        let pairs = [
+            ("bar", " bar\n"),
+            ("bar\nbaz", " bar%0Abaz\n"),
+            ("bar\rbaz", " bar%0Dbaz\n"),
+            ("bar\r\nbaz", " bar%0D%0Abaz\n"),
+            ("foo\\", " foo%5C\n"),
+        ];
+        for (p, want) in pairs {
+            let have = encode_request("", Some(p));
+            assert_eq!(have, want)
+        }
     }
 }
