@@ -3,97 +3,95 @@ name: CI checks
 on: [push, pull_request]
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.51.0
-          override: true
-
-      # Ensure all code has been formatted with rustfmt
-      - run: rustup component add rustfmt
-      - name: Check formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check --color always
-
-  test:
-    name: Test on ${{ matrix.os }}
+  test-msrv:
+    name: Test MSRV on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-
+        os: [ubuntu-latest, windows-latest, macos-12]
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.51.0
-          override: true
-      - name: cargo fetch
-        uses: actions-rs/cargo@v1
-        with:
-          command: fetch
-      - name: Build tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --tests
+      - uses: actions/checkout@v4
+      # https://internals.rust-lang.org/t/should-i-expect-rust-1-28-1-30-to-support-building-on-macos-12/17713/2
+      - name: Use XCode version compatible with MSRV
+        run: sudo xcode-select --switch /Applications/Xcode_13.2.1.app
+        if: matrix.os == 'macos-12'
       - name: Run tests
-        uses: actions-rs/cargo@v1
+        run: cargo test --verbose
+      - name: Verify working directory is clean
+        run: git diff --exit-code
+
+  test-latest:
+    name: Test latest on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        id: toolchain
+      - run: rustup override set ${{steps.toolchain.outputs.name}}
+      - name: Remove lockfile to build with latest dependencies
+        run: rm Cargo.lock
+      - name: Run tests
+        run: cargo test --verbose
+      - name: Verify working directory is clean (excluding lockfile)
+        run: git diff --exit-code ':!Cargo.lock'
+
+  clippy:
+    name: Clippy (MSRV)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clippy check
+        uses: actions-rs/clippy-check@v1
         with:
-          command: test
-          args: --verbose
+          name: Clippy (MSRV)
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features --all-targets -- -D warnings
 
   codecov:
     name: Code coverage
     runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - name: Install cargo-tarpaulin
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-tarpaulin
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        id: toolchain
+      - run: rustup override set ${{steps.toolchain.outputs.name}}
       - name: Generate coverage report
-        uses: actions-rs/cargo@v1
-        with:
-          command: tarpaulin
-          args: --release --timeout 180 --out Xml
+        run: >
+          cargo tarpaulin
+          --engine llvm
+          --release
+          --timeout 180
+          --out xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1.0.3
+        uses: codecov/codecov-action@v4.5.0
         with:
-          token: ${{secrets.CODECOV_TOKEN}}
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   doc-links:
-    name: Nightly lint
+    name: Intra-doc links
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
-      - name: cargo fetch
-        uses: actions-rs/cargo@v1
-        with:
-          command: fetch
-
-      # Ensure intra-documentation links all resolve correctly
+      - run: cargo fetch
       # Requires #![deny(intra_doc_link_resolution_failure)] in crates.
       - name: Check intra-doc links
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --document-private-items
+        run: cargo doc --document-private-items
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: cargo fmt -- --check
