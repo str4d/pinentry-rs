@@ -14,6 +14,7 @@ use crate::{Error, Result};
 ///
 /// Reference: https://gnupg.org/documentation/manuals/assuan/Server-responses.html
 #[derive(Debug)]
+#[allow(dead_code)]
 enum Response {
     /// Request was successful.
     Ok(Option<String>),
