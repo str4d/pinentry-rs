@@ -6,6 +6,10 @@ and this project adheres to Rust's notion of
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All versions prior
 to 1.0.0 are beta releases.
 
+## [0.5.1] - 2024-08-31
+### Fixed
+- Client requests are now correctly percent-encoded when necessary.
+
 ## [0.5.0] - 2021-08-28
 - Bumped `nom` crate to 7.*
 

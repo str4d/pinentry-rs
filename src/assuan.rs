@@ -14,6 +14,7 @@ use crate::{Error, Result};
 ///
 /// Reference: https://gnupg.org/documentation/manuals/assuan/Server-responses.html
 #[derive(Debug)]
+#[allow(dead_code)]
 enum Response {
     /// Request was successful.
     Ok(Option<String>),
@@ -256,9 +257,9 @@ mod tests {
             ("bar\r\nbaz", " bar%0D%0Abaz\n"),
             ("foo\\", " foo%5C\n"),
         ];
-        for (p, want) in pairs {
+        for (p, want) in &pairs {
             let have = encode_request("", Some(p));
-            assert_eq!(have, want)
+            assert_eq!(&have, want)
         }
     }
 }
