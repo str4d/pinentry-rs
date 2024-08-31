@@ -256,9 +256,9 @@ mod tests {
             ("bar\r\nbaz", " bar%0D%0Abaz\n"),
             ("foo\\", " foo%5C\n"),
         ];
-        for (p, want) in pairs {
+        for (p, want) in &pairs {
             let have = encode_request("", Some(p));
-            assert_eq!(have, want)
+            assert_eq!(&have, want)
         }
     }
 }
