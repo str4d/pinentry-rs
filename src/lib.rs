@@ -18,7 +18,7 @@
 //!         .interact()
 //! } else {
 //!     // Fall back to some other passphrase entry method.
-//!     Ok(SecretString::new("a better passphrase than this".to_owned()))
+//!     Ok("a better passphrase than this".to_owned().into())
 //! }?;
 //! # Ok::<(), pinentry::Error>(())
 //! ```
@@ -239,7 +239,7 @@ impl<'a> PassphraseInput<'a> {
         loop {
             match (pinentry.send_request("GETPIN", None)?, self.required) {
                 // If the user provides an empty passphrase, GETPIN returns no data.
-                (None, None) => return Ok(SecretString::new(String::new())),
+                (None, None) => return Ok(String::new().into()),
                 (Some(passphrase), _) => return Ok(passphrase),
                 (_, Some(empty_error)) => {
                     // SETERROR is cleared by GETPIN, so we reset it on each loop.

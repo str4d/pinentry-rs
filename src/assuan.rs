@@ -148,7 +148,13 @@ impl Connection {
                     let buf = data.take();
                     let data_line_decoded =
                         percent_decode_str(data_line.expose_secret()).decode_utf8()?;
-                    data = Some(buf.unwrap_or_else(String::new) + &data_line_decoded);
+
+                    let mut s = buf
+                        .unwrap_or_else(|| String::new().into_boxed_str())
+                        .to_string();
+                    s.push_str(data_line_decoded.as_ref());
+                    data = Some(s.into_boxed_str());
+
                     if let Cow::Owned(mut data_line_decoded) = data_line_decoded {
                         data_line_decoded.zeroize();
                     }
@@ -174,7 +180,6 @@ mod read {
         sequence::{pair, preceded, terminated},
         IResult,
     };
-    use secrecy::SecretString;
 
     use super::Response;
 
@@ -224,7 +229,7 @@ mod read {
                 preceded(
                     tag("D "),
                     map(is_not("\r\n"), |data: &str| {
-                        Response::DataLine(SecretString::new(data.to_owned()))
+                        Response::DataLine(data.to_owned().into())
                     }),
                 ),
                 preceded(
