@@ -134,7 +134,7 @@ impl Connection {
                         debug!("< OK {}", info);
                     }
                     line.zeroize();
-                    return Ok(data.map(SecretString::new));
+                    return Ok(data);
                 }
                 Response::Err { code, description } => {
                     line.zeroize();
@@ -149,11 +149,18 @@ impl Connection {
                     let data_line_decoded =
                         percent_decode_str(data_line.expose_secret()).decode_utf8()?;
 
-                    let mut s = buf
-                        .unwrap_or_else(|| String::new().into_boxed_str())
-                        .to_string();
+                    // Concatenate into a new buffer so we can control allocations.
+                    let mut s = String::with_capacity(
+                        buf.as_ref()
+                            .map(|buf| buf.expose_secret().len())
+                            .unwrap_or(0)
+                            + data_line_decoded.len(),
+                    );
+                    if let Some(buf) = buf {
+                        s.push_str(buf.expose_secret());
+                    }
                     s.push_str(data_line_decoded.as_ref());
-                    data = Some(s.into_boxed_str());
+                    data = Some(s.into());
 
                     if let Cow::Owned(mut data_line_decoded) = data_line_decoded {
                         data_line_decoded.zeroize();
