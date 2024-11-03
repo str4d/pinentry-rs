@@ -134,7 +134,7 @@ impl Connection {
                         debug!("< OK {}", info);
                     }
                     line.zeroize();
-                    return Ok(data.map(SecretString::new));
+                    return Ok(data);
                 }
                 Response::Err { code, description } => {
                     line.zeroize();
@@ -148,7 +148,20 @@ impl Connection {
                     let buf = data.take();
                     let data_line_decoded =
                         percent_decode_str(data_line.expose_secret()).decode_utf8()?;
-                    data = Some(buf.unwrap_or_else(String::new) + &data_line_decoded);
+
+                    // Concatenate into a new buffer so we can control allocations.
+                    let mut s = String::with_capacity(
+                        buf.as_ref()
+                            .map(|buf| buf.expose_secret().len())
+                            .unwrap_or(0)
+                            + data_line_decoded.len(),
+                    );
+                    if let Some(buf) = buf {
+                        s.push_str(buf.expose_secret());
+                    }
+                    s.push_str(data_line_decoded.as_ref());
+                    data = Some(s.into());
+
                     if let Cow::Owned(mut data_line_decoded) = data_line_decoded {
                         data_line_decoded.zeroize();
                     }
@@ -174,13 +187,12 @@ mod read {
         sequence::{pair, preceded, terminated},
         IResult,
     };
-    use secrecy::SecretString;
 
     use super::Response;
 
     fn gpg_error_code(input: &str) -> IResult<&str, u16> {
-        map(digit1, |code| {
-            let full = u32::from_str_radix(code, 10).expect("have decimal digits");
+        map(digit1, |code: &str| {
+            let full = code.parse::<u32>().expect("have decimal digits");
             // gpg uses the lowest 16 bits for error codes.
             full as u16
         })(input)
@@ -224,7 +236,7 @@ mod read {
                 preceded(
                     tag("D "),
                     map(is_not("\r\n"), |data: &str| {
-                        Response::DataLine(SecretString::new(data.to_owned()))
+                        Response::DataLine(data.to_owned().into())
                     }),
                 ),
                 preceded(
