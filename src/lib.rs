@@ -50,7 +50,7 @@
 //! ```
 
 // Catch documentation errors caused by code changes.
-#![deny(broken_intra_doc_links)]
+#![deny(rustdoc::broken_intra_doc_links)]
 #![deny(missing_docs)]
 
 use secrecy::SecretString;
@@ -84,7 +84,7 @@ impl<'a> PassphraseInput<'a> {
     ///
     /// Returns `None` if `pinentry` cannot be found in `PATH`.
     pub fn with_default_binary() -> Option<Self> {
-        Self::with_binary("pinentry".to_owned())
+        Self::with_binary("pinentry")
     }
 
     /// Creates a new PassphraseInput using the given path to, or name of, a `pinentry`
@@ -265,7 +265,7 @@ impl<'a> ConfirmationDialog<'a> {
     ///
     /// Returns `None` if `pinentry` cannot be found in `PATH`.
     pub fn with_default_binary() -> Option<Self> {
-        Self::with_binary("pinentry".to_owned())
+        Self::with_binary("pinentry")
     }
 
     /// Creates a new ConfirmationDialog using the given path to, or name of, a `pinentry`
@@ -390,7 +390,7 @@ impl<'a> MessageDialog<'a> {
     ///
     /// Returns `None` if `pinentry` cannot be found in `PATH`.
     pub fn with_default_binary() -> Option<Self> {
-        Self::with_binary("pinentry".to_owned())
+        Self::with_binary("pinentry")
     }
 
     /// Creates a new MessageDialog using the given path to, or name of, a `pinentry`

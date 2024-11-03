@@ -184,8 +184,8 @@ mod read {
     use super::Response;
 
     fn gpg_error_code(input: &str) -> IResult<&str, u16> {
-        map(digit1, |code| {
-            let full = u32::from_str_radix(code, 10).expect("have decimal digits");
+        map(digit1, |code: &str| {
+            let full = code.parse::<u32>().expect("have decimal digits");
             // gpg uses the lowest 16 bits for error codes.
             full as u16
         })(input)

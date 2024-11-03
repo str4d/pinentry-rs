@@ -6,6 +6,10 @@ and this project adheres to Rust's notion of
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All versions prior
 to 1.0.0 are beta releases.
 
+## Unreleased
+- MSRV has been increased to 1.56.0
+- Bumped `secrecy` crate to 0.10
+
 ## [0.5.1] - 2024-08-31
 ### Fixed
 - Client requests are now correctly percent-encoded when necessary.
