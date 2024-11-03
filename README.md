@@ -8,12 +8,12 @@ various platforms.
 Add this line to your `Cargo.toml`:
 
 ```
-pinentry = "0.5"
+pinentry = "0.6"
 ```
 
 See the [documentation](https://docs.rs/pinentry) for examples.
 
-`pinentry` requires Rust version 1.51 or greater.
+`pinentry` requires Rust version 1.60 or greater.
 
 ## License
 
