@@ -108,10 +108,19 @@ impl Connection {
         // only set the environment variables if they are provided - if no variables are explicitly
         // provided, they will be inherited from the parent process.
         if let Some(xorg_display) = options.xorg_display {
-            command.env("DISPLAY", xorg_display);
+            // if variable is empty, clearly no display is wanted
+            if xorg_display.is_empty() {
+                command.env_remove("DISPLAY");
+            } else {
+                command.env("DISPLAY", xorg_display);
+            }
         }
         if let Some(wayland_display) = options.wayland_display {
-            command.env("WAYLAND_DISPLAY", wayland_display);
+            if wayland_display.is_empty() {
+                command.env_remove("WAYLAND_DISPLAY");
+            } else {
+                command.env("WAYLAND_DISPLAY", wayland_display);
+            }
         }
 
         let process = command.spawn()?;
