@@ -65,6 +65,29 @@ pub use error::{Error, GpgError};
 /// Result type for the `pinentry` crate.
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// UNIX-specific options
+#[derive(Debug, Copy, Clone, Default)]
+#[cfg(unix)]
+pub struct UnixOptions<'a> {
+    /// The name of the terminal device to use.
+    /// If not provided, pinentry will use the terminal of this process.
+    pub tty_name: Option<&'a str>,
+    /// The type of the terminal device to use.
+    /// If not provided, pinentry will try to read $TERM, if that also fails,
+    /// "xterm-256color" will be chosen as the default value.
+    pub tty_type: Option<&'a str>,
+    /// The xorg display to use. If not provided, pinentry will use the
+    /// configured xorg display of the parent.
+    ///
+    /// This only has an effect if your pinentry binary uses xorg.
+    pub xorg_display: Option<&'a str>,
+    /// The wayland display to use. If not provided, pinentry will use the
+    /// configured wayland display of the parent.
+    ///
+    /// This only has an effect if your pinentry binary uses wayland.
+    pub wayland_display: Option<&'a str>,
+}
+
 /// A dialog for requesting a passphrase from the user.
 pub struct PassphraseInput<'a> {
     binary: PathBuf,
@@ -77,6 +100,8 @@ pub struct PassphraseInput<'a> {
     ok: Option<&'a str>,
     cancel: Option<&'a str>,
     timeout: Option<u16>,
+    #[cfg(unix)]
+    unix_options: UnixOptions<'a>,
 }
 
 impl<'a> PassphraseInput<'a> {
@@ -108,6 +133,7 @@ impl<'a> PassphraseInput<'a> {
                 ok: None,
                 cancel: None,
                 timeout: None,
+                unix_options: Default::default(),
             })
     }
 
@@ -206,9 +232,19 @@ impl<'a> PassphraseInput<'a> {
         self
     }
 
+    /// Sets the UNIX-specific options.
+    #[cfg(unix)]
+    pub fn with_unix_options(&mut self, options: UnixOptions<'a>) -> &mut Self {
+        self.unix_options = options;
+        self
+    }
+
     /// Asks for a passphrase or PIN.
     pub fn interact(&self) -> Result<SecretString> {
+        #[cfg(not(unix))]
         let mut pinentry = assuan::Connection::open(&self.binary)?;
+        #[cfg(unix)]
+        let mut pinentry = assuan::Connection::open_ex(&self.binary, self.unix_options)?;
 
         if let Some(title) = &self.title {
             pinentry.send_request("SETTITLE", Some(title))?;
@@ -258,6 +294,8 @@ pub struct ConfirmationDialog<'a> {
     cancel: Option<&'a str>,
     not_ok: Option<&'a str>,
     timeout: Option<u16>,
+    #[cfg(unix)]
+    unix_options: UnixOptions<'a>,
 }
 
 impl<'a> ConfirmationDialog<'a> {
@@ -285,6 +323,7 @@ impl<'a> ConfirmationDialog<'a> {
                 cancel: None,
                 not_ok: None,
                 timeout: None,
+                unix_options: Default::default(),
             })
     }
 
@@ -340,6 +379,13 @@ impl<'a> ConfirmationDialog<'a> {
         self
     }
 
+    /// Sets the UNIX-specific options.
+    #[cfg(unix)]
+    pub fn with_unix_options(&mut self, options: UnixOptions<'a>) -> &mut Self {
+        self.unix_options = options;
+        self
+    }
+
     /// Asks for confirmation.
     ///
     /// Returns:
@@ -350,7 +396,10 @@ impl<'a> ConfirmationDialog<'a> {
     /// - `Err(Error::Cancelled)` if the "Cancel" button is selected and the "Not OK"
     ///   button is enabled.
     pub fn confirm(&self, query: &str) -> Result<bool> {
+        #[cfg(not(unix))]
         let mut pinentry = assuan::Connection::open(&self.binary)?;
+        #[cfg(unix)]
+        let mut pinentry = assuan::Connection::open_ex(&self.binary, self.unix_options)?;
 
         pinentry.send_request("SETDESC", Some(query))?;
         if let Some(ok) = &self.ok {
@@ -383,6 +432,8 @@ pub struct MessageDialog<'a> {
     title: Option<&'a str>,
     ok: Option<&'a str>,
     timeout: Option<u16>,
+    #[cfg(unix)]
+    unix_options: UnixOptions<'a>,
 }
 
 impl<'a> MessageDialog<'a> {
@@ -406,6 +457,7 @@ impl<'a> MessageDialog<'a> {
             title: None,
             ok: None,
             timeout: None,
+            unix_options: Default::default(),
         })
     }
 
@@ -435,9 +487,19 @@ impl<'a> MessageDialog<'a> {
         self
     }
 
+    /// Sets the UNIX-specific options.
+    #[cfg(unix)]
+    pub fn with_unix_options(&mut self, options: UnixOptions<'a>) -> &mut Self {
+        self.unix_options = options;
+        self
+    }
+
     /// Shows a message.
     pub fn show_message(&self, message: &str) -> Result<()> {
+        #[cfg(not(unix))]
         let mut pinentry = assuan::Connection::open(&self.binary)?;
+        #[cfg(unix)]
+        let mut pinentry = assuan::Connection::open_ex(&self.binary, self.unix_options)?;
 
         pinentry.send_request("SETDESC", Some(message))?;
         if let Some(ok) = &self.ok {

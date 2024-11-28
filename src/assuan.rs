@@ -10,6 +10,9 @@ use zeroize::Zeroize;
 
 use crate::{Error, Result};
 
+#[cfg(unix)]
+use crate::UnixOptions;
+
 /// Possible response lines from an Assuan server.
 ///
 /// Reference: https://gnupg.org/documentation/manuals/assuan/Server-responses.html
@@ -92,29 +95,22 @@ impl Connection {
     }
 
     #[cfg(unix)]
+    #[allow(dead_code)] // only for backwards compatiblity
     pub fn open(name: &Path) -> Result<Self> {
-        Self::open_ex(name, None, None, None, None)
+        Self::open_ex(name, Default::default())
     }
 
     #[cfg(unix)]
-    pub fn open_ex(
-        name: &Path,
-        tty_name: Option<&str>,
-        tty_type: Option<&str>,
-        xorg_display: Option<&str>,
-        wayland_display: Option<&str>,
-    ) -> Result<Self> {
+    pub fn open_ex(name: &Path, options: UnixOptions) -> Result<Self> {
         let mut command = Command::new(name);
-        command
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped());
+        command.stdin(Stdio::piped()).stdout(Stdio::piped());
 
-        // only set the environment variables if they are provided - if no variables are explicitly 
+        // only set the environment variables if they are provided - if no variables are explicitly
         // provided, they will be inherited from the parent process.
-        if let Some(xorg_display) = xorg_display {
+        if let Some(xorg_display) = options.xorg_display {
             command.env("DISPLAY", xorg_display);
         }
-        if let Some(wayland_display) = wayland_display {
+        if let Some(wayland_display) = options.wayland_display {
             command.env("WAYLAND_DISPLAY", wayland_display);
         }
 
@@ -128,8 +124,8 @@ impl Connection {
         conn.read_response()?;
 
         // create tty_name and tty_type in every case
-        let tty_name = tty_name.unwrap_or("/dev/tty");
-        let tty_type = match tty_type {
+        let tty_name = options.tty_name.unwrap_or("/dev/tty");
+        let tty_type = match options.tty_type {
             Some(ty) => Cow::Borrowed(ty),
             None => std::env::var("TERM")
                 .map(Cow::Owned)
