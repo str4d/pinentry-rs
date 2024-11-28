@@ -75,6 +75,7 @@ fn encode_request(command: &str, parameters: Option<&str>) -> String {
 }
 
 impl Connection {
+    #[cfg(not(unix))]
     pub fn open(name: &Path) -> Result<Self> {
         let process = Command::new(name)
             .stdin(Stdio::piped())
@@ -87,20 +88,56 @@ impl Connection {
         // There is always an initial OK server response
         conn.read_response()?;
 
-        #[cfg(unix)]
-        {
-            conn.send_request("OPTION", Some("ttyname=/dev/tty"))?;
-            conn.send_request(
-                "OPTION",
-                Some(&format!(
-                    "ttytype={}",
-                    std::env::var("TERM")
-                        .as_ref()
-                        .map(|s| s.as_str())
-                        .unwrap_or("xterm-256color")
-                )),
-            )?;
+        Ok(conn)
+    }
+
+    #[cfg(unix)]
+    pub fn open(name: &Path) -> Result<Self> {
+        Self::open_ex(name, None, None, None, None)
+    }
+
+    #[cfg(unix)]
+    pub fn open_ex(
+        name: &Path,
+        tty_name: Option<&str>,
+        tty_type: Option<&str>,
+        xorg_display: Option<&str>,
+        wayland_display: Option<&str>,
+    ) -> Result<Self> {
+        let mut command = Command::new(name);
+        command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped());
+
+        // only set the environment variables if they are provided - if no variables are explicitly 
+        // provided, they will be inherited from the parent process.
+        if let Some(xorg_display) = xorg_display {
+            command.env("DISPLAY", xorg_display);
         }
+        if let Some(wayland_display) = wayland_display {
+            command.env("WAYLAND_DISPLAY", wayland_display);
+        }
+
+        let process = command.spawn()?;
+
+        let output = process.stdin.expect("could open stdin");
+        let input = BufReader::new(process.stdout.expect("could open stdin"));
+
+        let mut conn = Connection { output, input };
+        // There is always an initial OK server response
+        conn.read_response()?;
+
+        // create tty_name and tty_type in every case
+        let tty_name = tty_name.unwrap_or("/dev/tty");
+        let tty_type = match tty_type {
+            Some(ty) => Cow::Borrowed(ty),
+            None => std::env::var("TERM")
+                .map(Cow::Owned)
+                .unwrap_or(Cow::Borrowed("xterm-256color")),
+        };
+
+        conn.send_request("OPTION", Some(&format!("ttyname={tty_name}")))?;
+        conn.send_request("OPTION", Some(&format!("ttytype={tty_type}")))?;
 
         Ok(conn)
     }
