@@ -1,10 +1,11 @@
-use log::{debug, info};
+use log::{debug, info, warn};
 use percent_encoding::percent_decode_str;
 use secrecy::{ExposeSecret, SecretString};
+use wait_timeout::ChildExt;
 use std::borrow::Cow;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
-use std::process::{ChildStdin, ChildStdout};
+use std::process::{Child, ChildStdin, ChildStdout};
 use std::process::{Command, Stdio};
 use zeroize::Zeroize;
 
@@ -41,9 +42,12 @@ enum Response {
 }
 
 pub struct Connection {
+    process: Child,
     output: ChildStdin,
     input: BufReader<ChildStdout>,
 }
+
+const CONNECTION_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(1);
 
 // Percent escape some chars as described here:
 // https://gnupg.org/documentation/manuals/assuan/Client-requests.html
@@ -76,14 +80,14 @@ fn encode_request(command: &str, parameters: Option<&str>) -> String {
 
 impl Connection {
     pub fn open(name: &Path) -> Result<Self> {
-        let process = Command::new(name)
+        let mut process = Command::new(name)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()?;
-        let output = process.stdin.expect("could open stdin");
-        let input = BufReader::new(process.stdout.expect("could open stdin"));
+        let output = process.stdin.take().expect("could open stdin");
+        let input = BufReader::new(process.stdout.take().expect("could open stdin"));
 
-        let mut conn = Connection { output, input };
+        let mut conn = Connection { process, output, input };
         // There is always an initial OK server response
         conn.read_response()?;
 
@@ -170,11 +174,24 @@ impl Connection {
             }
         }
     }
+
+    pub fn close(&mut self) -> Result<()> {
+        let _ = self.send_request("BYE", None);
+        match self.process.wait_timeout(CONNECTION_WAIT_TIMEOUT)? {
+            Some(exit) if exit.success() => {},
+            Some(exit) => { warn!("pinentry exited with failure: {exit}") }
+            None => {
+                warn!("Timeout waiting for pinentry to finish, killing subprocess.");
+                self.process.kill()?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Drop for Connection {
     fn drop(&mut self) {
-        let _ = self.send_request("BYE", None);
+        let _ = self.close();
     }
 }
 
