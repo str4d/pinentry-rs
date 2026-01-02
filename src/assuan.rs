@@ -40,7 +40,7 @@ enum Response {
     },
 }
 
-pub struct Connection {
+pub(crate) struct Connection {
     process: Child,
     output: ChildStdin,
     input: BufReader<ChildStdout>,
@@ -76,7 +76,7 @@ fn encode_request(command: &str, parameters: Option<&str>) -> String {
 }
 
 impl Connection {
-    pub fn open(name: &Path) -> Result<Self> {
+    pub(crate) fn open(name: &Path) -> Result<Self> {
         let mut process = Command::new(name)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -110,7 +110,7 @@ impl Connection {
         Ok(conn)
     }
 
-    pub fn send_request(
+    pub(crate) fn send_request(
         &mut self,
         command: &str,
         parameters: Option<&str>,
