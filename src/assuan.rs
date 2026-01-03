@@ -211,7 +211,7 @@ mod read {
         character::complete::{digit1, line_ending},
         combinator::{map, opt},
         sequence::{pair, preceded, terminated},
-        IResult,
+        IResult, Parser,
     };
 
     use super::Response;
@@ -221,7 +221,8 @@ mod read {
             let full = code.parse::<u32>().expect("have decimal digits");
             // gpg uses the lowest 16 bits for error codes.
             full as u16
-        })(input)
+        })
+        .parse_complete(input)
     }
 
     pub(super) fn server_response(input: &str) -> IResult<&str, Response> {
@@ -277,7 +278,8 @@ mod read {
                 ),
             )),
             line_ending,
-        )(input)
+        )
+        .parse_complete(input)
     }
 }
 
