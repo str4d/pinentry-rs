@@ -6,7 +6,7 @@ and this project adheres to Rust's notion of
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All versions prior
 to 1.0.0 are beta releases.
 
-## [0.8.0] - PLANNED
+## [0.8.0] - 2026-01-03
 - MSRV has been increased to 1.70.0
 - Migrated to `which 8`.
 
