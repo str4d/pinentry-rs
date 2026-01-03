@@ -9,7 +9,7 @@ keywords = ["passphrase", "password"]
 categories = ["api-bindings", "command-line-interface"]
 license = "MIT OR Apache-2.0"
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.70"
 
 [dependencies]
 log = "0.4"
@@ -17,5 +17,5 @@ nom = { version = "8", default-features = false }
 percent-encoding = "2.1"
 secrecy = "0.10"
 wait-timeout = "0.2"
-which = { version = "5", default-features = false }
+which = "8"
 zeroize = "1"
