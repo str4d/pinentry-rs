@@ -10,6 +10,10 @@ to 1.0.0 are beta releases.
 - MSRV has been increased to 1.65.0
 - Migrated to `nom 8`, `which 5`.
 
+## [0.6.2] - 2026-01-03
+- The child `pinentry` process is now given at most 1 second to terminate before
+  being killed.
+
 ## [0.6.1] - 2026-01-03
 ### Added
 - Support for configuring Unix-specific pinentry options, behind `#[cfg(unix)]`:
