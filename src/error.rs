@@ -13,14 +13,17 @@ pub(crate) const GPG_ERR_NOT_CONFIRMED: u16 = 114;
 pub struct GpgError {
     /// The GPG error code.
     ///
-    /// See https://github.com/gpg/libgpg-error/blob/master/src/err-codes.h.in for the
-    /// mapping from error code to GPG error type.
+    /// See [`err-codes.h.in` from `libgpg-error`] for the mapping from error code to GPG
+    /// error type.
+    ///
+    /// [`err-codes.h.in` from `libgpg-error`]: https://github.com/gpg/libgpg-error/blob/master/src/err-codes.h.in
     code: u16,
 
     /// A description of the error, if available.
     ///
-    /// See https://github.com/gpg/libgpg-error/blob/master/src/err-codes.h.in for the
-    /// likely descriptions.
+    /// See [`err-codes.h.in` from `libgpg-error`] for the likely descriptions.
+    ///
+    /// [`err-codes.h.in` from `libgpg-error`]: https://github.com/gpg/libgpg-error/blob/master/src/err-codes.h.in
     description: Option<String>,
 }
 
