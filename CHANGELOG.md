@@ -6,7 +6,7 @@ and this project adheres to Rust's notion of
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All versions prior
 to 1.0.0 are beta releases.
 
-## [Unreleased]
+## [0.7.0] - 2026-01-03
 - MSRV has been increased to 1.65.0
 - Migrated to `nom 8`, `which 5`.
 
