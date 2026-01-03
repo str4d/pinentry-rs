@@ -76,11 +76,20 @@ fn encode_request(command: &str, parameters: Option<&str>) -> String {
 }
 
 impl Connection {
-    pub(crate) fn open(name: &Path) -> Result<Self> {
-        let mut process = Command::new(name)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()?;
+    pub(crate) fn open(
+        name: &Path,
+        #[cfg(unix)] unix_options: crate::unix::Options,
+    ) -> Result<Self> {
+        let mut command = Command::new(name);
+        command.stdin(Stdio::piped()).stdout(Stdio::piped());
+
+        #[cfg(unix)]
+        {
+            unix_options.set_x11_display(&mut command);
+            unix_options.set_wayland_display(&mut command);
+        }
+
+        let mut process = command.spawn()?;
         let output = process.stdin.take().expect("could open stdin");
         let input = BufReader::new(process.stdout.take().expect("could open stdin"));
 
@@ -94,16 +103,13 @@ impl Connection {
 
         #[cfg(unix)]
         {
-            conn.send_request("OPTION", Some("ttyname=/dev/tty"))?;
             conn.send_request(
                 "OPTION",
-                Some(&format!(
-                    "ttytype={}",
-                    std::env::var("TERM")
-                        .as_ref()
-                        .map(|s| s.as_str())
-                        .unwrap_or("xterm-256color")
-                )),
+                Some(&format!("ttyname={}", unix_options.tty_name())),
+            )?;
+            conn.send_request(
+                "OPTION",
+                Some(&format!("ttytype={}", unix_options.tty_type())),
             )?;
         }
 
