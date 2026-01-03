@@ -8,13 +8,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-12]
+        os: [ubuntu-latest, windows-latest, macos-14]
     steps:
       - uses: actions/checkout@v4
-      # https://internals.rust-lang.org/t/should-i-expect-rust-1-28-1-30-to-support-building-on-macos-12/17713/2
-      - name: Use XCode version compatible with MSRV
-        run: sudo xcode-select --switch /Applications/Xcode_13.2.1.app
-        if: matrix.os == 'macos-12'
       - name: Run tests
         run: cargo test --verbose
       - name: Verify working directory is clean
