@@ -8,7 +8,7 @@ to 1.0.0 are beta releases.
 
 ## [Unreleased]
 - MSRV has been increased to 1.65.0
-- Migrated to `nom 8`.
+- Migrated to `nom 8`, `which 5`.
 
 ## [0.6.1] - 2026-01-03
 ### Added
