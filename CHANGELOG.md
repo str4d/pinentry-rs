@@ -6,7 +6,7 @@ and this project adheres to Rust's notion of
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All versions prior
 to 1.0.0 are beta releases.
 
-## [0.6.2] - PLANNED
+## [0.6.2] - 2026-01-03
 - The child `pinentry` process is now given at most 1 second to terminate before
   being killed.
 
