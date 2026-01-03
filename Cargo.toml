@@ -11,6 +11,9 @@ license = "MIT OR Apache-2.0"
 edition = "2021"
 rust-version = "1.70"
 
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
 log = "0.4"
 nom = { version = "8", default-features = false }
