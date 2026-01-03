@@ -10,7 +10,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-14]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Run tests
         run: cargo test --verbose
       - name: Verify working directory is clean
@@ -23,7 +25,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         id: toolchain
       - run: rustup override set ${{steps.toolchain.outputs.name}}
@@ -38,7 +42,9 @@ jobs:
     name: Clippy (MSRV)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Clippy check
         uses: actions-rs/clippy-check@v1
         with:
@@ -54,7 +60,9 @@ jobs:
       options: --security-opt seccomp=unconfined
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         id: toolchain
       - run: rustup override set ${{steps.toolchain.outputs.name}}
@@ -74,7 +82,9 @@ jobs:
     name: Intra-doc links
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -88,6 +98,8 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Check formatting
         run: cargo fmt -- --check
