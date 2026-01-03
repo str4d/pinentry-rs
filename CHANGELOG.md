@@ -8,6 +8,7 @@ to 1.0.0 are beta releases.
 
 ## [0.8.0] - PLANNED
 - MSRV has been increased to 1.70.0
+- Migrated to `which 8`.
 
 ## [0.7.0] - 2026-01-03
 - MSRV has been increased to 1.65.0
