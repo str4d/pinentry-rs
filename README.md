@@ -13,7 +13,7 @@ pinentry = "0.6"
 
 See the [documentation](https://docs.rs/pinentry) for examples.
 
-`pinentry` requires Rust version 1.65 or greater.
+`pinentry` requires Rust version 1.70 or greater.
 
 ## License
 
