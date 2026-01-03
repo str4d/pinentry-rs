@@ -7,6 +7,13 @@ and this project adheres to Rust's notion of
 to 1.0.0 are beta releases.
 
 ## [Unreleased]
+### Added
+- Support for configuring Unix-specific pinentry options, behind `#[cfg(unix)]`:
+  - `pinentry::unix` module.
+  - `pinentry::ConfirmationDialog::with_unix_options`
+  - `pinentry::MessageDialog::with_unix_options`
+  - `pinentry::PassphraseInput::with_unix_options`
+
 ### Fixed
 - Zombie processes are now avoided by waiting for the child process to terminate.
 

@@ -60,6 +60,9 @@ use std::path::PathBuf;
 mod assuan;
 mod error;
 
+#[cfg(unix)]
+pub mod unix;
+
 pub use error::{Error, GpgError};
 
 /// Result type for the `pinentry` crate.
@@ -77,6 +80,8 @@ pub struct PassphraseInput<'a> {
     ok: Option<&'a str>,
     cancel: Option<&'a str>,
     timeout: Option<u16>,
+    #[cfg(unix)]
+    unix_options: unix::Options<'a>,
 }
 
 impl<'a> PassphraseInput<'a> {
@@ -108,6 +113,8 @@ impl<'a> PassphraseInput<'a> {
                 ok: None,
                 cancel: None,
                 timeout: None,
+                #[cfg(unix)]
+                unix_options: unix::Options::default(),
             })
     }
 
@@ -206,9 +213,20 @@ impl<'a> PassphraseInput<'a> {
         self
     }
 
+    /// Sets the UNIX-specific options.
+    #[cfg(unix)]
+    pub fn with_unix_options(&mut self, options: unix::Options<'a>) -> &mut Self {
+        self.unix_options = options;
+        self
+    }
+
     /// Asks for a passphrase or PIN.
     pub fn interact(&self) -> Result<SecretString> {
-        let mut pinentry = assuan::Connection::open(&self.binary)?;
+        let mut pinentry = assuan::Connection::open(
+            &self.binary,
+            #[cfg(unix)]
+            self.unix_options,
+        )?;
 
         if let Some(title) = &self.title {
             pinentry.send_request("SETTITLE", Some(title))?;
@@ -258,6 +276,8 @@ pub struct ConfirmationDialog<'a> {
     cancel: Option<&'a str>,
     not_ok: Option<&'a str>,
     timeout: Option<u16>,
+    #[cfg(unix)]
+    unix_options: unix::Options<'a>,
 }
 
 impl<'a> ConfirmationDialog<'a> {
@@ -285,6 +305,8 @@ impl<'a> ConfirmationDialog<'a> {
                 cancel: None,
                 not_ok: None,
                 timeout: None,
+                #[cfg(unix)]
+                unix_options: unix::Options::default(),
             })
     }
 
@@ -340,6 +362,13 @@ impl<'a> ConfirmationDialog<'a> {
         self
     }
 
+    /// Sets the UNIX-specific options.
+    #[cfg(unix)]
+    pub fn with_unix_options(&mut self, options: unix::Options<'a>) -> &mut Self {
+        self.unix_options = options;
+        self
+    }
+
     /// Asks for confirmation.
     ///
     /// Returns:
@@ -350,7 +379,11 @@ impl<'a> ConfirmationDialog<'a> {
     /// - `Err(Error::Cancelled)` if the "Cancel" button is selected and the "Not OK"
     ///   button is enabled.
     pub fn confirm(&self, query: &str) -> Result<bool> {
-        let mut pinentry = assuan::Connection::open(&self.binary)?;
+        let mut pinentry = assuan::Connection::open(
+            &self.binary,
+            #[cfg(unix)]
+            self.unix_options,
+        )?;
 
         pinentry.send_request("SETDESC", Some(query))?;
         if let Some(ok) = &self.ok {
@@ -383,6 +416,8 @@ pub struct MessageDialog<'a> {
     title: Option<&'a str>,
     ok: Option<&'a str>,
     timeout: Option<u16>,
+    #[cfg(unix)]
+    unix_options: unix::Options<'a>,
 }
 
 impl<'a> MessageDialog<'a> {
@@ -406,6 +441,8 @@ impl<'a> MessageDialog<'a> {
             title: None,
             ok: None,
             timeout: None,
+            #[cfg(unix)]
+            unix_options: unix::Options::default(),
         })
     }
 
@@ -435,9 +472,20 @@ impl<'a> MessageDialog<'a> {
         self
     }
 
+    /// Sets the UNIX-specific options.
+    #[cfg(unix)]
+    pub fn with_unix_options(&mut self, options: unix::Options<'a>) -> &mut Self {
+        self.unix_options = options;
+        self
+    }
+
     /// Shows a message.
     pub fn show_message(&self, message: &str) -> Result<()> {
-        let mut pinentry = assuan::Connection::open(&self.binary)?;
+        let mut pinentry = assuan::Connection::open(
+            &self.binary,
+            #[cfg(unix)]
+            self.unix_options,
+        )?;
 
         pinentry.send_request("SETDESC", Some(message))?;
         if let Some(ok) = &self.ok {
