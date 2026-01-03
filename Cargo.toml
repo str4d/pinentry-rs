@@ -16,5 +16,6 @@ log = "0.4"
 nom = { version = "7", default-features = false }
 percent-encoding = "2.1"
 secrecy = "0.10"
+wait-timeout = "0.2"
 which = { version = "4", default-features = false }
 zeroize = "1"

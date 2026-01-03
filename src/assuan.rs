@@ -1,14 +1,18 @@
-use log::{debug, info, warn};
-use percent_encoding::percent_decode_str;
-use secrecy::{ExposeSecret, SecretString};
 use std::borrow::Cow;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
-use std::process::{Child, ChildStdin, ChildStdout};
-use std::process::{Command, Stdio};
+use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::time::Duration;
+
+use log::{debug, info, warn};
+use percent_encoding::percent_decode_str;
+use secrecy::{ExposeSecret, SecretString};
+use wait_timeout::ChildExt;
 use zeroize::Zeroize;
 
 use crate::{Error, Result};
+
+const CHILD_CLOSE_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Possible response lines from an Assuan server.
 ///
@@ -186,11 +190,16 @@ impl Connection {
 impl Drop for Connection {
     fn drop(&mut self) {
         let _ = self.send_request("BYE", None);
-        match self.process.wait() {
-            Ok(exit) if !exit.success() => {
+        match self.process.wait_timeout(CHILD_CLOSE_TIMEOUT) {
+            Ok(Some(exit)) if exit.success() => (),
+            Ok(Some(exit)) => {
                 warn!("pinentry exited with failure: {exit}");
             }
-            _ => (),
+            Ok(None) => {
+                warn!("Timeout waiting for pinentry to finish, killing subprocess.");
+                let _ = self.process.kill();
+            }
+            Err(_) => (),
         }
     }
 }
